@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import cv2
 import os
-
+from PIL import Image
+from PIL.ExifTags import TAGS
 import numpy as np
 
 def load_images_from_folder(folder):
@@ -90,26 +91,50 @@ def match_features(img1, img2, points1, points2):
     matched_pairs = list(zip(points1, points2))
     return matched_pairs
 
+def get_focal_lengths_from_exif(image_path):
 
-def estimating_motion(points1, points2, images):
-    focal_length = 1.0  # Example value, use actual focal length
+    img = Image.open(image_path)
+    exif_data = img._getexif()
+    focal_length = None
 
-    for img in images:
-        height, width = img.shape[:2]
-        principal_point = (width / 2, height / 2)
+    if exif_data:
+        for tag, value in exif_data.items():
+            if TAGS.get(tag) == "FocalLength":
+                if isinstance(value, tuple):
+                        # Handle IFDRational object
+                    focal_length = float(value[0]) / float(value[1])
+                else:
+                        # Directly use the value if it's not a tuple
+                    focal_length = value
+                break
 
-    # Compute the Essential Matrix
-    E, mask = cv2.findEssentialMat(points1, points2, focal=focal_length, pp=principal_point, method=cv2.RANSAC, prob=0.999, threshold=1.0)
-    print("E", E)
-    print("mask", mask)
+    return float(focal_length)
 
-    # Recover rotation and translation from the Essential Matrix
-    _, R, t, _ = cv2.recoverPose(E, points1, points2)
+def get_image_center(image):
+    height, width = image.shape[:2]
+    center_x = width / 2
+    center_y = height / 2
+    return center_x, center_y
+
+
+def get_camera_matrix(focal_length, center):
+    return np.array([[focal_length, 0, center[0]], [0, focal_length, center[1]], [0, 0, 1]], dtype=np.float64)
+
+
+def estimate_motion(matched_pairs, camera_matrix):
+    # Unpack the points from the pairs
+    points1 = np.float32([pair[0] for pair in matched_pairs])
+    points2 = np.float32([pair[1] for pair in matched_pairs])
+
+    E, mask = cv2.findEssentialMat(points1, points2, camera_matrix, method=cv2.RANSAC, prob=0.999, threshold=1.0)
+    _, R, t, mask = cv2.recoverPose(E, points1, points2, camera_matrix)
+
+    return R, t
 
 
 def main():
     global images, axs
-    folder_path = "images"  # Replace with your folder path
+    folder_path = "images"
     images = load_images_from_folder(folder_path)
 
     if len(images) < 2:
@@ -118,24 +143,52 @@ def main():
 
     fig, axs = display_images_side_by_side(images)
     fig.canvas.mpl_connect('button_press_event', onclick)
-    plt.show() 
+    plt.show()
 
     # Extract points for each image from matched_points
+    # Print matched points
     points_image1 = [pt[0] for pt in matched_points if len(pt) == 2]
     points_image2 = [pt[1] for pt in matched_points if len(pt) == 2]
-
-    # Print matched points
     print("Matched points:", matched_points)
 
     # Match features and visualize them
+    # Print the matched pairs
     matched_pairs = match_features(images[0], images[1], points_image1, points_image2)
-
-    # Optionally, print the matched pairs
     if matched_pairs:
         for pair in matched_pairs:
             print(f"Point in Image 1: {pair[0]}, Point in Image 2: {pair[1]}")
 
-    estimating_motion(points_image1, points_image2, images)
+
+    #obtain focal lengths
+    focal_length = get_focal_lengths_from_exif('images/image0.jpg')
+    if focal_length:
+        print(f"Focal Length of image : {focal_length}mm")
+    else:
+        print(f"Focal length not found in EXIF data for image.")
+
+    #obtain image centers
+    center_x, center_y = get_image_center(images[0])
+    print(f"Image center: ({center_x}, {center_y})")
+
+    camera_matrix = get_camera_matrix(focal_length, (center_x, center_y))
+    print("Camera Matrix:", camera_matrix)
+
+    R, t = estimate_motion(matched_pairs, camera_matrix)
+    print("R:", R)
+    print("t:", t)
+
+    # Projection matrix for the first camera (Assuming it's at the origin)
+    # np.eye(3) The parameter 3 means it's a 3x3 identity matrix.
+    # np.zeros((3, 1) This creates a 3x1 column matrix (or vector) filled with zeros.
+    P1 = camera_matrix @ np.hstack((np.eye(3), np.zeros((3, 1))))
+
+    # Projection matrix for the second camera
+    P2 = camera_matrix @ np.hstack((R, t))
+
+    # Now, P1 and P2 can be used for further steps like triangulation
+    print("Projection Matrix P1:\n", P1)
+    print("Projection Matrix P2:\n", P2)
+
 
 if __name__ == "__main__":
     main()

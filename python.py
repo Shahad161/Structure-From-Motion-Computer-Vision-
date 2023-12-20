@@ -185,7 +185,7 @@ def main():
     # Projection matrix for the second camera
     P2 = camera_matrix @ np.hstack((R, t))
 
-    # Now, P1 and P2 can be used for further steps like triangulation
+    # P1 and P2 can be used for further steps like triangulation
     print("Projection Matrix P1:\n", P1)
     print("Projection Matrix P2:\n", P2)
 

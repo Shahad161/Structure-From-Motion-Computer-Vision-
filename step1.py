@@ -38,10 +38,40 @@ def find_projection_matrix(points_3D, points_2D):
     # print(P)
     return P
 
+def get_projection_matrix():
+# 2D points for Image 1
+    points_2D_image1 = np.array([
+            [1856, 1969], [2093, 1880], [2359, 1632], [2489, 1478], [2613, 1437],
+            [1897, 2200], [2229, 1880], [2483, 1667], [2530, 1602], [2625, 1567],
+            [1992, 2371], [2152, 2217], [2211, 2176], [2465, 1874], [2572, 1727],
+            [2625, 1715], [1880, 2667], [2104, 2407], [2353, 2129], [2465, 1999],
+            [2542, 1851], [2613, 1869], [2654, 1336]
+    ])
+
+        # 2D points for Image 2
+    points_2D_image2 = np.array([
+            [1710, 2034], [2041, 1934], [2503, 1691], [2745, 1520], [2982, 1466],
+            [1758, 2241],[2272, 1963], [2716, 1721], [2810, 1644], [2994, 1608],
+            [1876, 2413], [2136, 2265], [2225, 2229], [2674, 1934], [2875, 1786],
+            [2952, 1780], [1746, 2679], [2053, 2454], [2467, 2170], [2668, 2058],
+            [2798, 1916], [2946, 1886], [3053, 1366]
+    ])
+
+    points_3D = np.array([
+            [8.5, 0.3, 11],[7.5, 4, 11],[8, 10.75, 11],[8.5, 15, 11],[7.5, 20.4, 11],[6, 0.6, 11],
+            [6, 7, 11],[6, 15.25, 11],[6.25, 17.25, 11],[5.25, 21.7, 11], [3.4, 2, 11],[3.2, 5.5, 11],
+            [2.2, 6.9, 11],[3, 14.8, 11],[3.5, 19.2, 11],[2.8, 21.5, 11],[0.8, 0.3, 11],[1.3, 4.4, 11],
+            [1, 11.25, 11],[0.3, 14.75, 11],[2, 17.75, 11],[0.6, 22, 11],[8.5, 22.5, 11],
+    ])
+
+    P1 = find_projection_matrix(points_3D, points_2D_image1)
+    P2 = find_projection_matrix(points_3D, points_2D_image2)
+
+    return points_2D_image1, points_2D_image2, points_3D , P1, P2
+
 def project_points(points_3D, projection_matrix):
     # Initialize the list for projected 2D points
     projected_2D_points = []
-    # print("3D" , points_3D)
 
     # Iterate over each 3D point
     for point in points_3D:
@@ -63,7 +93,6 @@ def project_points(points_3D, projection_matrix):
         print(projected_2D_points)
     return projected_2D_points
 
-
 def display_image_with_points(image, original_points_2D, projected_points_2D, title, subplot):
     plt.subplot(subplot)
     plt.imshow(image)
@@ -81,6 +110,7 @@ def display_image_with_points(image, original_points_2D, projected_points_2D, ti
     plt.title(title)
     plt.axis('off')
 
+
 def main():
     global images, axs
     folder_path = "images"
@@ -90,25 +120,8 @@ def main():
         print("The folder must contain at least two images.")
         return
 
-     # 2D points for Image 1
-    points_2D_image1 = np.array([
-        [1856, 1969], [2093, 1880], [2359, 1632], [2489, 1478], [2613, 1437],
-        [1897, 2200], [2229, 1880], [2483, 1667], [2530, 1602], [2625, 1567]
-    ])
-
-    # 2D points for Image 2
-    points_2D_image2 = np.array([
-        [1710, 2034], [2041, 1934], [2503, 1691], [2745, 1520], [2982, 1466],
-        [1758, 2241],[2272, 1963], [2716, 1721], [2810, 1644], [2994, 1608]
-    ])
-
-    points_3D = np.array([
-        [8.5, 0.3, 11],[7.5, 4, 11],[8, 10.75, 11],[8.5, 15, 11],
-        [7.5, 20.4, 11],[6, 0.6, 11], [6, 7, 11],[6, 15.25, 11],[6.25, 17.25, 11],[5.25, 21.7, 11],
-    ])
-
-    P1 = find_projection_matrix(points_3D, points_2D_image1)
-    P2 = find_projection_matrix(points_3D, points_2D_image2)
+    # 2D points for Image 1
+    points_2D_image1, points_2D_image2, points_3D, P1, P2 = get_projection_matrix()
 
     # Project points onto each image
     points_image1 = project_points(points_3D, P1)

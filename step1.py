@@ -90,7 +90,7 @@ def project_points(points_3D, projection_matrix):
 
         # Add the 2D point to the list
         projected_2D_points.append([x_2D, y_2D])
-        print(projected_2D_points)
+        # print(projected_2D_points)
     return projected_2D_points
 
 def display_image_with_points(image, original_points_2D, projected_points_2D, title, subplot):
